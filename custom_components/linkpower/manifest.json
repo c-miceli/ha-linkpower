@@ -17,7 +17,7 @@
   ],
   "dependencies": [],
   "requirements": [
-    "bleak>=0.22.3"
+    "bleak-retry-connector>=3.9.0"
   ],
   "loggers": [
     "bleak"

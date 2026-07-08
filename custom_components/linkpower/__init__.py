@@ -22,7 +22,7 @@ async def async_setup_entry(
 ) -> bool:
     """Set up LinkPower from a config entry."""
 
-    coordinator = LinkPowerCoordinator(hass)
+    coordinator = LinkPowerCoordinator(hass, entry.data.get("address"))
 
     await coordinator.async_config_entry_first_refresh()
 
