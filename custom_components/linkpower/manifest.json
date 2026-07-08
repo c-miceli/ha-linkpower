@@ -1,15 +1,25 @@
 {
   "domain": "linkpower",
   "name": "LinkPower Battery",
-  "bluetooth": [
-    {"local_name": "Link-Power-1"}
+  "version": "0.1.0-dev",
+  "documentation": "https://github.com/c-miceli/ha-linkpower",
+  "issue_tracker": "https://github.com/c-miceli/ha-linkpower/issues",
+  "codeowners": [
+    "@c-miceli"
   ],
-  "codeowners": [],
   "config_flow": true,
-  "dependencies": ["bluetooth_adapters"],
-  "documentation": "https://github.com/yourname/ha-linkpower",
   "integration_type": "device",
   "iot_class": "local_polling",
-  "requirements": ["bleak>=0.21.1"],
-  "version": "0.1.0"
+  "bluetooth": [
+    {
+      "local_name": "Link-Power-1"
+    }
+  ],
+  "dependencies": [],
+  "requirements": [
+    "bleak>=0.22.3"
+  ],
+  "loggers": [
+    "bleak"
+  ]
 }
