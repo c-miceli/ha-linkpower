@@ -56,7 +56,7 @@ class LinkPowerDcOutputSensor(LinkPowerBaseBinarySensor):
     @property
     def is_on(self) -> bool | None:
         """Return true if DC output appears active."""
-        raw = self.coordinator.data.get("raw_dc_port")
+        raw = (self.coordinator.data or {}).get("raw_dc_port")
         if not raw:
             return None
 
@@ -73,7 +73,7 @@ class LinkPowerTypeCActiveSensor(LinkPowerBaseBinarySensor):
     @property
     def is_on(self) -> bool | None:
         """Return true if Type-C appears active."""
-        raw = self.coordinator.data.get("raw_typec_port")
+        raw = (self.coordinator.data or {}).get("raw_typec_port")
         if not raw:
             return None
 

@@ -14,19 +14,15 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
     DEVICE_NAME,
-    DOMAIN,
     UUID_BATTERY,
     UUID_DC_PORT,
     UUID_EXT_INFO,
     UUID_TYPEC_PORT,
 )
+from .decoder import decode_packets, hex_bytes
+from .diagnostics import packet_diff
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def _hex(data: bytes) -> str:
-    """Return hex string for BLE data."""
-    return "-".join(f"{byte:02X}" for byte in data)
 
 
 class LinkPowerCoordinator(DataUpdateCoordinator):
@@ -37,22 +33,24 @@ class LinkPowerCoordinator(DataUpdateCoordinator):
         super().__init__(
             hass,
             _LOGGER,
-            name=DOMAIN,
-            update_interval=timedelta(seconds=60),
+            name=DEVICE_NAME,
+            update_interval=timedelta(minutes=5),
         )
         self.address = address
-        self.name = DEVICE_NAME
+        self._previous_ext_info: str | None = None
+        self._previous_dc_port: str | None = None
+        self._previous_typec_port: str | None = None
 
     async def _async_find_device(self):
         """Find the battery using Home Assistant Bluetooth."""
         if self.address:
-            service_info = bluetooth.async_ble_device_from_address(
+            device = bluetooth.async_ble_device_from_address(
                 self.hass,
                 self.address,
                 connectable=True,
             )
-            if service_info:
-                return service_info
+            if device:
+                return device
 
         scanner = bluetooth.async_get_scanner(self.hass)
         devices = await scanner.discover(timeout=10)
@@ -78,16 +76,40 @@ class LinkPowerCoordinator(DataUpdateCoordinator):
         )
 
         try:
-            battery = await client.read_gatt_char(UUID_BATTERY)
+            battery_data = await client.read_gatt_char(UUID_BATTERY)
             ext_info = await client.read_gatt_char(UUID_EXT_INFO)
             dc_port = await client.read_gatt_char(UUID_DC_PORT)
             typec_port = await client.read_gatt_char(UUID_TYPEC_PORT)
 
-            return {
-                "battery": battery[0],
-                "raw_ext_info": _hex(ext_info),
-                "raw_dc_port": _hex(dc_port),
-                "raw_typec_port": _hex(typec_port),
-            }
+            raw_ext_info = hex_bytes(ext_info)
+            raw_dc_port = hex_bytes(dc_port)
+            raw_typec_port = hex_bytes(typec_port)
+
+            decoded = decode_packets(
+                battery=battery_data[0],
+                raw_ext_info=raw_ext_info,
+                raw_dc_port=raw_dc_port,
+                raw_typec_port=raw_typec_port,
+            )
+
+            decoded["ext_info_diff"] = packet_diff(
+                self._previous_ext_info,
+                raw_ext_info,
+            )
+            decoded["dc_port_diff"] = packet_diff(
+                self._previous_dc_port,
+                raw_dc_port,
+            )
+            decoded["typec_port_diff"] = packet_diff(
+                self._previous_typec_port,
+                raw_typec_port,
+            )
+
+            self._previous_ext_info = raw_ext_info
+            self._previous_dc_port = raw_dc_port
+            self._previous_typec_port = raw_typec_port
+
+            return decoded
+
         finally:
             await client.disconnect()
